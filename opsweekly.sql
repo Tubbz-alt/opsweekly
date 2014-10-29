@@ -50,6 +50,7 @@ CREATE TABLE `user_profile` (
     `timezone` varchar(10) NOT NULL,
     `sleeptracking_provider` varchar(255) NOT NULL,
     `sleeptracking_settings` text NOT NULL,
+    `team` varchar(128) DEFAULT NULL,
     PRIMARY KEY (`ldap_username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
