@@ -40,7 +40,7 @@ if (getTeamConfig('oncall')) {
 <script>
 $('#week-report-container').html('<h2>Generating...</h2>');
 var want_report = "week";
-$.post("/generate_report.php", { type: want_report, date: '<?php echo $time_requested ?>' }).done(function(data) {
+$.post("./generate_report.php", { type: want_report, date: '<?php echo $time_requested ?>' }).done(function(data) {
     $('#' + want_report + '-report-container').html(data);
 });
 </script>
@@ -50,7 +50,7 @@ $('a[data-toggle="tab"]').on('show', function (e) {
     $('#week-report-container').html('<h2>Generating...</h2>');
     $('#year-report-container').html('<h2>Generating...</h2>');
     var want_report = $(e.target).attr('report');
-    $.post("/generate_report.php", { type: want_report, date: '<?php echo $time_requested ?>' }).done(function(data) {
+    $.post("./generate_report.php", { type: want_report, date: '<?php echo $time_requested ?>' }).done(function(data) {
        $('#' + want_report + '-report-container').html(data);
     });
 
