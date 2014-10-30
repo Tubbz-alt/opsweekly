@@ -10,9 +10,10 @@ if (!db::connect()) {
     $tz = db::escape($_POST['timezone']);
     $sleep_provider = db::escape($_POST['sleeptracking_provider']);
     $sleep_settings = db::escape(json_encode($_POST['sleeptracking']));
+    $team = db::escape($_POST['team']);
 
-    $query = "REPLACE INTO user_profile (ldap_username, full_name, timezone, sleeptracking_provider, sleeptracking_settings) 
-                                    VALUES ('$username', '$full_name', '$tz', '$sleep_provider', '$sleep_settings')";
+    $query = "REPLACE INTO user_profile (ldap_username, full_name, timezone, sleeptracking_provider, sleeptracking_settings, team)
+                                    VALUES ('$username', '$full_name', '$tz', '$sleep_provider', '$sleep_settings', '$team')";
     if (!db::query($query)) {
         echo "Database update failed, error: " . db::error();
     } else {
