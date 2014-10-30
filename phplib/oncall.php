@@ -37,8 +37,11 @@ function printOnCallNotifications($on_call_name, $start, $end, $oncall_start, $o
 
     logline("Firing getOnCallNotifications...");
     // And now ask for the notifications
-    $notifications = getOnCallNotifications($on_call_name, $provider_global_options, $provider_team_options, $oncall_start, $oncall_end);
-
+    try {
+        $notifications = getOnCallNotifications($on_call_name, $provider_global_options, $provider_team_options, $oncall_start, $oncall_end);
+    } catch (Exception $e) {
+        return $e->getMessage()."<br/>";
+    }
     // If the returned data wasn't an array, something is wrong...
     if (!is_array($notifications)) {
         logline("getOnCallNotifications didn't return an array! Returned data was {$notifications} ");
