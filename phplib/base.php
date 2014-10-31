@@ -18,17 +18,16 @@ $nagios_state_to_badge = array("WARNING" => "warning", "CRITICAL" => "important"
 $nagios_state_to_bar = array("WARNING" => "warning", "CRITICAL" => "danger", "UNKNOWN" => "info", "OK" => "success");
 $tag_to_badge = array("action" => "success", "noaction" => "important", "" => "default");
 $nagios_alert_tags = array("" => "Untagged", "issue" => "Action Taken: Service Issue (View clean)", "issuetimeperiod" => "Action Taken: Service Issue, timeperiod inappropriate (View clean)",
-    "viewissue" => "Action Taken: View issue (network/site outage, service health questionable)", "incorrecttimeperiod" => "No Action Taken: Timeperiod not appropriate", 
-    "downtimeexpired" => "No Action Taken: Work ongoing, downtime expired", "downtimenotset" => "No Action Taken: Work ongoing, downtime not set", 
+    "viewissue" => "Action Taken: View issue (network/site outage, service health questionable)", "incorrecttimeperiod" => "No Action Taken: Timeperiod not appropriate",
+    "downtimeexpired" => "No Action Taken: Work ongoing, downtime expired", "downtimenotset" => "No Action Taken: Work ongoing, downtime not set",
     "thresholdincorrect" => "No Action Taken: Threshold adjustment required", "checkfaulty" => "No Action Taken: Check is faulty/requires modification", "na" => "N/A");
 $nagios_tag_categories = array("" => "Untagged", "action" => "Action Taken", "noaction" => "No Action Taken");
-$nagios_tag_category_map = array("issue" => "action", "issuetimeperiod" => "action", "viewissue" => "action", "incorrecttimeperiod" => "noaction", 
+$nagios_tag_category_map = array("issue" => "action", "issuetimeperiod" => "action", "viewissue" => "action", "incorrecttimeperiod" => "noaction",
     "downtimeexpired" => "noaction", "downtimenotset" => "noaction", "thresholdincorrect" => "noaction", "checkfaulty" => "noaction");
 $locales = array("UK" => "Europe/London", "ET" => "America/New_York", "PT" => "America/Los_Angeles");
 $sleep_states = array(-1 => "Unknown", 0 => "Awake", 1 => "Asleep");
 $sleep_state_icons = array(0 => "icon-eye-open", 1 => "icon-eye-close");
 $sleep_state_levels = array(-1 => "Unknown", 1 => "NREM Stage 1", 2 => "NREM Stage 2", 3 => "NREM Stage 3", 4 => "REM");
-
 
 // Test to make sure we can handle this team
 // .. and handle dev
@@ -47,7 +46,7 @@ if (!function_exists('getUsername')) {
 
 function getOrSetRequestedDate() {
     session_start();
-    if (isset($_POST['date'])) { 
+    if (isset($_POST['date'])) {
         $_SESSION['opsweekly_requested_date'] = $_POST['date'];
     }
     $date = (isset($_SESSION['opsweekly_requested_date'])) ? $_SESSION['opsweekly_requested_date'] : "now";
@@ -326,20 +325,20 @@ function getListOfPeopleWithReports() {
 
 function handleSearch($search_type, $search_term) {
     switch ($search_type) {
-    case 'service':
-        $query = "SELECT a.* FROM oncall_weekly a, (SELECT max(id) as id, alert_id FROM oncall_weekly WHERE service like '%{$search_term}%' GROUP BY(alert_id)) b WHERE a.id = b.id ORDER BY a.timestamp DESC;";
-        break;
-    case 'host':
-        $query = "SELECT a.* FROM oncall_weekly a, (SELECT max(id) as id, alert_id FROM oncall_weekly WHERE hostname like '%{$search_term}%' GROUP BY(alert_id)) b WHERE a.id = b.id ORDER BY a.timestamp DESC;";
-        break;
-    case 'generic_reports':
-        $query = "SELECT a.* FROM generic_weekly a, (SELECT max(id) as id, range_start FROM generic_weekly WHERE report like '%{$search_term}%' GROUP BY(range_start)) b WHERE a.id = b.id ORDER BY a.timestamp DESC;";
-        break;
-    case 'meeting_notes':
-        $query = "SELECT a.* FROM meeting_notes a, (SELECT max(id) as id, range_start FROM meeting_notes WHERE notes like '%{$search_term}%' GROUP BY(range_start)) b WHERE a.id = b.id ORDER BY a.timestamp DESC;";
-        break;
-    default:
-        return false;
+        case 'service':
+            $query = "SELECT a.* FROM oncall_weekly a, (SELECT max(id) as id, alert_id FROM oncall_weekly WHERE service like '%{$search_term}%' GROUP BY(alert_id)) b WHERE a.id = b.id ORDER BY a.timestamp DESC;";
+            break;
+        case 'host':
+            $query = "SELECT a.* FROM oncall_weekly a, (SELECT max(id) as id, alert_id FROM oncall_weekly WHERE hostname like '%{$search_term}%' GROUP BY(alert_id)) b WHERE a.id = b.id ORDER BY a.timestamp DESC;";
+            break;
+        case 'generic_reports':
+            $query = "SELECT a.* FROM generic_weekly a, (SELECT max(id) as id, range_start FROM generic_weekly WHERE report like '%{$search_term}%' GROUP BY(range_start)) b WHERE a.id = b.id ORDER BY a.timestamp DESC;";
+            break;
+        case 'meeting_notes':
+            $query = "SELECT a.* FROM meeting_notes a, (SELECT max(id) as id, range_start FROM meeting_notes WHERE notes like '%{$search_term}%' GROUP BY(range_start)) b WHERE a.id = b.id ORDER BY a.timestamp DESC;";
+            break;
+        default:
+            return false;
     }
     $results = db::query($query);
     return db::fetch_all($results);
@@ -347,36 +346,37 @@ function handleSearch($search_type, $search_term) {
 
 function formatSearchResults(array $results, $search_type, $highlight_term, $limit = 0, $start = 0) {
 
+    $html = '';
     // If only a limited number of results is required, reduce the array down to that number. 
     if ($limit != 0) $results = array_slice($results, $start, $limit);
 
     switch ($search_type) {
-    case 'service':
-    case 'hostname':
-        $results = highlightSearchQuery($results, $highlight_term, $search_type);
-        $html = printOnCallTableHeader();
-        foreach ($results as $n) {
-            $html .= formatOnCallRowForPrint($n);
-        }
-        $html .= printOnCallTableFooter();
-        break;
+        case 'service':
+        case 'hostname':
+            $results = highlightSearchQuery($results, $highlight_term, $search_type);
+            $html = printOnCallTableHeader();
+            foreach ($results as $n) {
+                $html .= formatOnCallRowForPrint($n);
+            }
+            $html .= printOnCallTableFooter();
+            break;
 
-    case 'report':
-        $results = highlightSearchQuery($results, $highlight_term, 'report');
-        foreach ($results as $result) {
-            $html .= formatWeeklyReportForPrint($result);
-        }
-        break;
+        case 'report':
+            $results = highlightSearchQuery($results, $highlight_term, 'report');
+            foreach ($results as $result) {
+                $html .= formatWeeklyReportForPrint($result);
+            }
+            break;
 
-    case 'notes':
-        $results = highlightSearchQuery($results, $highlight_term, 'notes');
-        foreach ($results as $result) {
-            $html .= formatMeetingNotesForPrint($result, true);
-        }
-        break;
+        case 'notes':
+            $results = highlightSearchQuery($results, $highlight_term, 'notes');
+            foreach ($results as $result) {
+                $html .= formatMeetingNotesForPrint($result, true);
+            }
+            break;
 
-    default:
-        return false;
+        default:
+            return false;
 
     }
 
@@ -480,6 +480,8 @@ function printWeeklyHints($username, $from, $to) {
 }
 
 function sendMeetingReminder($fqdn) {
+    global $ROOT_URL;
+    
     $team_name = getTeamName();
 
     $start_end = getWeekRange("1 week ago");
