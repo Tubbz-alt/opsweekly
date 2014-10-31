@@ -10,6 +10,9 @@ $mysql_pass = "my_password";
 // for weekly reports
 $email_from_domain = "mycompany.com";
 
+//Needed if using Team Based Oncall Options
+$gblTeams = array('Alpha', 'Bravo', 'Delta');
+
 /**
  * Authentication configuration
  * Nagdash must know who is requesting pages, as every update entry etc is unique
