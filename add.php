@@ -90,8 +90,6 @@ include_once('phplib/nav.php')
 
         </div>
     </div>
-    </form>
-
 </div>
 <?php include_once('phplib/footer.php'); ?>
 </body>

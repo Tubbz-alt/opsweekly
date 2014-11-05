@@ -1,2 +1,4 @@
 phplib/config.php
 vendor
+.htaccess
+build

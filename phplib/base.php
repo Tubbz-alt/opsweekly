@@ -126,96 +126,78 @@ class db {
         global $mysql_host, $mysql_user, $mysql_pass;
         $mysql_db = getTeamConfig('database');
 
-        if(function_exists("mysqli_connect")) {
-            $mysqli = new mysqli($mysql_host, $mysql_user, $mysql_pass, $mysql_db);
-            if ($mysqli->connect_error) {
-                echo insertNotify("critical", $mysqli->connect_error);
-                return false;
-            }
-            self::$dbh = $mysqli;
-        } else if(function_exists("mysql_connect")) {
-            if(!$mysql = mysql_connect($mysql_host, $mysql_user, $mysql_pass)) {
-                echo insertNotify("critical", mysql_error());
-                return false;
-            }
-            if(!mysql_select_db($mysql_db, $mysql)) {
-                echo insertNotify("critical", mysql_error());
-                return false;
-            }
-        } else {
-            echo "MySQL support is required";
-            return false;
-        }
+        $dsn = "mysql:host=$mysql_host;port=3306;dbname=$mysql_db";
+        self::$dbh = new PDO($dsn, $mysql_user, $mysql_pass);
         return true;
     }
 
     static function query($query) {
-        if (!self::$dbh) self::connect();
-        if (!self::$dbh) return false;
-        if (self::$dbh instanceof mysqli) {
-            return self::$dbh->query($query);
-        } else {
-            return mysql_query($query, self::$dbh);
+        if (!self::$dbh instanceof PDO) {
+            self::connect();
         }
+        return self::$dbh->query($query);
     }
 
     static function error() {
-        if (self::$dbh instanceof mysqli) {
-            return self::$dbh->error;
-        } else {
-            return mysql_error();
+        if (!self::$dbh instanceof PDO) {
+            throw new Exception("PDO Not Created");
         }
+        return array(
+            'code' => self::$dbh->errorCode(),
+            'info' => self::$dbh->errorInfo()
+        );
+    }
+
+    static function prepare($sql)
+    {
+        if (!self::$dbh instanceof PDO) {
+            self::connect();
+        }
+        return self::$dbh->prepare($sql);
+    }
+
+    static function execute($stmt, $vars)
+    {
+        if ($stmt === false) return false;
+        if (!$stmt instanceof PDOStatement) {
+            throw new Exception("Invalid PDO Statement");
+        }
+        return $stmt->execute($vars);
     }
 
     static function escape($string) {
-        if (!self::$dbh) self::connect();
-        if (!self::$dbh) return false;
-        if (self::$dbh instanceof mysqli) {
-            return self::$dbh->real_escape_string($string);
-        } else {
-            return mysql_real_escape_string($string, self::$dbh);
+        if (!self::$dbh instanceof PDO) {
+            self::connect();
         }
+        return self::$dbh->quote($string);
     }
 
     static function num_rows($stmt) {
-        if (!self::$dbh) self::connect();
-        if (!self::$dbh) return false;
-        if (self::$dbh instanceof mysqli) {
-            return $stmt->num_rows;
-        } else {
-            return mysql_num_rows($stmt);
+        if ($stmt === false) return false;
+        if (!$stmt instanceof PDOStatement) {
+            throw new Exception("Invalid PDO Statement");
         }
+        return $stmt->rowCount();
     }
 
     static function fetch_assoc($stmt) {
-        if (!self::$dbh) self::connect();
-        if (!self::$dbh) return false;
-        if (self::$dbh instanceof mysqli) {
-            if ($stmt->num_rows > 0) {
-                return $stmt->fetch_assoc();
-            } else {
-                return false;
-            }
+        if ($stmt === false) return false;
+        if (!$stmt instanceof PDOStatement) {
+            throw new Exception("Invalid PDO Statement");
+        }
+        if ($stmt->rowCount() > 0) {
+            return $stmt->fetch(PDO::FETCH_ASSOC);
         } else {
-            if (mysql_num_rows($stmt) > 0) {
-                return mysql_fetch_assoc($stmt);
-            } else {
-                return false;
-            }
+            return false;
         }
     }
 
     static function fetch_all($stmt) {
-        if (!self::$dbh) self::connect();
-        if (!self::$dbh) return false;
-        if (self::$dbh instanceof mysqli) {
-            return $stmt->fetch_all(MYSQLI_ASSOC);
-        } else {
-            while($result = mysql_fetch_assoc($stmt)) {
-                $return[] = $result;
-            }
-            return $return;
+        if ($stmt === false) return false;
+        if (!$stmt instanceof PDOStatement) {
+            throw new Exception("Invalid PDO Statement");
         }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 
@@ -238,33 +220,39 @@ function generateMeetingNotesID($range_start, $range_end) {
 }
 
 function checkForPreviousWeeklyUpdate($report_id) {
-    $report_id = db::escape($report_id);
-    $results = db::query("SELECT * FROM generic_weekly where report_id='{$report_id}' order by id DESC LIMIT 1");
-    return db::fetch_assoc($results);
+    $sql = "SELECT * FROM generic_weekly where report_id=:reportId order by id DESC LIMIT 1";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':reportId' => $report_id));
+    return db::fetch_assoc($stmt);
 }
 
 function checkForPreviousMeetingNotes($report_id) {
-    $report_id = db::escape($report_id);
-    $results = db::query("SELECT * FROM meeting_notes where report_id='{$report_id}' order by id DESC LIMIT 1");
-    return db::fetch_assoc($results);
+    $sql = "SELECT * FROM meeting_notes where report_id=:reportId order by id DESC LIMIT 1";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':reportId' => $report_id));
+    return db::fetch_assoc($stmt);
 }
 
 function checkForPreviousOnCallItem($alert_id) {
-    $alert_id = db::escape($alert_id);
-    $results = db::query("SELECT * FROM oncall_weekly where alert_id='{$alert_id}' order by id DESC LIMIT 1");
-    return db::fetch_assoc($results);
+    $sql = "SELECT * FROM oncall_weekly where alert_id=:alertId order by id DESC LIMIT 1";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':alertId' => $alert_id));
+    return db::fetch_assoc($stmt);
 }
 
 function checkForUserProfile($username) {
-    $username = db::escape($username);
-    $results = db::query("SELECT * FROM user_profile where ldap_username='{$username}' LIMIT 1");
-    return db::fetch_assoc($results);
+    $sql = "SELECT * FROM user_profile where ldap_username=:username LIMIT 1";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':username' => $username));
+    return db::fetch_assoc($stmt);
 }
 
 function guessPersonOnCall($range_start, $range_end) {
-    $results = db::query("SELECT DISTINCT(contact) FROM oncall_weekly where range_start='{$range_start}' AND range_end='{$range_end}'  order by id DESC LIMIT 1");
-    if (db::num_rows($results) == 1) {
-        $result = db::fetch_assoc($results);
+    $sql = "SELECT DISTINCT(contact) FROM oncall_weekly where range_start=:rs AND range_end=:re  order by id DESC LIMIT 1";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':rs' => $range_start, ':re' => $range_end));
+    if (db::num_rows($stmt) == 1) {
+        $result = db::fetch_assoc($stmt);
         return $result['contact'];
     } else {
         return false;
@@ -282,42 +270,47 @@ function printHeaderNav() {
 }
 
 function getGenericWeeklyReportsForWeek($range_start, $range_end) {
-    $query = "SELECT * FROM generic_weekly WHERE id IN (SELECT max(id) FROM generic_weekly where range_start='{$range_start}' AND range_end='{$range_end}' GROUP BY(user)) ORDER BY user ASC;";
-    $results = db::query($query);
-    return db::fetch_all($results);
+    $sql = "SELECT * FROM generic_weekly WHERE id IN (SELECT max(id) FROM generic_weekly where range_start=:rs AND range_end=:re GROUP BY(user)) ORDER BY user ASC;";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':rs' => $range_start, ':re' => $range_end));
+    return db::fetch_all($stmt);
 }
 
 function getGenericWeeklyReportsForUser($username) {
-    $username = db::escape($username);
-    $query = "SELECT * FROM generic_weekly WHERE id IN (SELECT max(id) FROM generic_weekly where user='{$username}' GROUP BY(range_start)) ORDER BY range_end DESC;";
-    $results = db::query($query);
-    return db::fetch_all($results);
+    $sql = "SELECT * FROM generic_weekly WHERE id IN (SELECT max(id) FROM generic_weekly where user=:username GROUP BY(range_start)) ORDER BY range_end DESC;";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':username' => $username));
+    return db::fetch_all($stmt);
 }
 
 function getOnCallReportForWeek($range_start, $range_end) {
-    $query = "SELECT a.* FROM oncall_weekly a, (SELECT max(id) as id, alert_id FROM oncall_weekly WHERE range_start='{$range_start}' AND range_end='{$range_end}' GROUP BY(alert_id)) b WHERE a.id = b.id ORDER BY a.timestamp ASC;";
-    $results = db::query($query);
-    return db::fetch_all($results);
+    $sql = "SELECT a.* FROM oncall_weekly a, (SELECT max(id) as id, alert_id FROM oncall_weekly WHERE range_start=:rs AND range_end=:re GROUP BY(alert_id)) b WHERE a.id = b.id ORDER BY a.timestamp ASC;";
+
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':re' => $range_end, ':rs' => $range_start));
+    return db::fetch_all($stmt);
 }
 
 function getAvailableOnCallRangesForLastYear() {
-    $year_ago = strtotime("-1 year");
-    $query = "SELECT DISTINCT(range_start), range_end FROM oncall_weekly where range_start > '{$year_ago}' order by range_start ASC;";
-    $results = db::query($query);
-    return db::fetch_all($results);
+    $sql = "SELECT DISTINCT(range_start), range_end FROM oncall_weekly where range_start > :yearAgo order by range_start ASC;";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':yearAgo' => strtotime("-1 year")));
+    return db::fetch_all($stmt);
 }
 
 function getAvailableOnCallRangesForUser($username) {
-    $username = db::escape($username);
-    $query = "SELECT DISTINCT(range_start), range_end FROM oncall_weekly where contact = '{$username}' order by range_start ASC;";
-    $results = db::query($query);
-    return db::fetch_all($results);
+    $sql = "SELECT DISTINCT(range_start), range_end FROM oncall_weekly where contact = :username order by range_start ASC;";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array(':username' => $username));
+    return db::fetch_all($stmt);
 }
 
 function getListOfPeopleWithReports() {
-    $query = "SELECT DISTINCT(user) FROM generic_weekly ORDER BY user ASC;";
-    $results = db::query($query);
-    foreach(db::fetch_all($results) as $result) {
+    $sql = "SELECT DISTINCT(user) FROM generic_weekly ORDER BY user ASC;";
+    $stmt = db::prepare($sql);
+    db::execute($stmt, array());
+    $results = db::fetch_all($stmt);
+    foreach($results as $result) {
         $people[] = $result['user'];
     }
     return $people;
@@ -340,8 +333,9 @@ function handleSearch($search_type, $search_term) {
         default:
             return false;
     }
-    $results = db::query($query);
-    return db::fetch_all($results);
+    $stmt = db::prepare($query);
+    db::execute($stmt, array());
+    return db::fetch_all($stmt);
 }
 
 function formatSearchResults(array $results, $search_type, $highlight_term, $limit = 0, $start = 0) {
@@ -481,7 +475,7 @@ function printWeeklyHints($username, $from, $to) {
 
 function sendMeetingReminder($fqdn) {
     global $ROOT_URL;
-    
+
     $team_name = getTeamName();
 
     $start_end = getWeekRange("1 week ago");

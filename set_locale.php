@@ -21,4 +21,3 @@ if (!array_key_exists($locale, $locales)) {
 setcookie('opsweekly_locale', $locale, time()+60*60*24*365);
 Header("Location: {$return_path}");
 
-?>

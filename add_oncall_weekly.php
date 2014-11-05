@@ -6,8 +6,8 @@ if (!db::connect()) {
     echo "Database connection failed, cannot continue. ";
 } else {
     $username = getUsername();
-    $range_start = db::escape($_POST['oncall']['range_start']);
-    $range_end = db::escape($_POST['oncall']['range_end']);
+    $range_start = $_POST['oncall']['range_start'];
+    $range_end = $_POST['oncall']['range_end'];
 
     logline("Started adding a new oncall update for {$username} with range_start: {$range_start} and range_end: {$range_end}...");
 
@@ -30,19 +30,23 @@ if (!db::connect()) {
             logline("No need to do sleep tracking because {$username} has no provider chosen");
         }
 
+        $query = "INSERT INTO oncall_weekly (alert_id, range_start, range_end, timestamp, hostname, service, state, contact, output, tag, sleep_state, mtts, sleep_level, sleep_confidence, notes) VALUES
+                (:alertId, :rs, :re, :ts, :hostname, :service, :state, :username, :output, :tag, :sleep_state, :mtts, :sleep_level, :confidence,:notes)";
+
+        $stmt = db::prepare($query);
+
         foreach($_POST['oncall']['notifications'] as $id => $n) {
             $sleep_state = -1;
             $mtts = -1;
             $sleep_level = -1;
             $confidence = -1;
-            $timestamp = db::escape($n['time']);
-            $hostname = db::escape($n['hostname']);
-            $output = db::escape($n['output']);
-            $service = db::escape($n['service']);
-            $state = db::escape($n['state']);
-            $tag = db::escape($n['tag']);
-            $notes = db::escape(htmlentities($n['notes'], ENT_QUOTES));
-            $alert_id = generateOnCallAlertID($timestamp, $hostname, $service);
+            $timestamp = $n['time'];
+            $hostname = $n['hostname'];
+            $output = $n['output'];
+            $service = $n['service'];
+            $state = $n['state'];
+            $tag = $n['tag'];
+            $notes = htmlentities($n['notes'], ENT_QUOTES);
 
             if ($sleep) {
                 // Run the sleep tracking provider for this alert
@@ -53,16 +57,32 @@ if (!db::connect()) {
                     $sleep_level = $sleep_info['sleep_level'];
                     $confidence = $sleep_info['confidence'];
                 }
-
             }
 
-            $query = "INSERT INTO oncall_weekly (alert_id, range_start, range_end, timestamp, hostname, service, state, contact, output, tag, sleep_state, mtts, sleep_level, sleep_confidence, notes) VALUES
-                ('$alert_id', '$range_start', '$range_end', '$timestamp', '$hostname', '$service', '$state', '$username', '$output', '$tag', '$sleep_state', '$mtts', '$sleep_level', '$confidence','$notes')";
+            $vals = array(
+                ':alertId' => generateOnCallAlertID($timestamp, $hostname, $service),
+                ':rs' => $range_start,
+                ':re' => $range_end,
+                ':ts' => $timestamp,
+                ':hostname' => $hostname,
+                ':service' => $service,
+                ':state' => $state,
+                ':username' => getUsername(),
+                ':output' => $output,
+                ':tag' => $tag,
+                ':sleep_state' => $sleep_state,
+                ':mtts' => $mtts,
+                ':sleep_level' => $sleep_level,
+                ':confidence' => $confidence,
+                ':notes' => $notes
+            );
 
-            logline("Processing on call line with data: $query");
-            if (!db::query($query)) {
-                echo "Database update failed, error: " . db::error();
-                logline("Database update failed, error: " . db::error());
+            logline("Processing on call line with data: ".print_r($vals, true));
+            try {
+                db::execute($stmt, $vals);
+            } catch (PDOException $e) {
+                echo "<pre>Database update failed, error: " . print_r(db::error(), true)."</pre>";
+                logline("Database update failed, error: " . $e->getMessage());
             }
         }
         logline("Everything worked great, redirecting the user with success");
@@ -71,7 +91,5 @@ if (!db::connect()) {
         logline("We didn't find any notifications to process, redirect user back to add page");
         Header('Location: add.php');
     }
-
-
 }
 

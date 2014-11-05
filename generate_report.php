@@ -25,7 +25,7 @@ if ($report_type == "week") { // Weekly report.. Pretty simple, get the week, pr
     $pretty_start = date("l jS F Y", $oncall_start);
     $pretty_end = date("l jS F Y", $oncall_end);
 
-    // First, check the week exists/there is data. 
+    // First, check the week exists/there is data.
     if($results = getOnCallReportForWeek($oncall_start, $oncall_end)) {
         $total_notifications = count($results);
 

@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS `oncall_weekly`;
+
 CREATE TABLE `oncall_weekly` (
     id MEDIUMINT NOT NULL AUTO_INCREMENT,
     `alert_id` varchar(255) NOT NULL,
@@ -19,6 +21,7 @@ CREATE TABLE `oncall_weekly` (
     KEY `alert_name` (`alert_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+DROP TABLE IF EXISTS `generic_weekly`;
 CREATE TABLE `generic_weekly` (
     id MEDIUMINT NOT NULL AUTO_INCREMENT,
     `report_id` varchar(255) NOT NULL,
@@ -32,6 +35,7 @@ CREATE TABLE `generic_weekly` (
     KEY `report_name` (`report_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+DROP TABLE IF EXISTS `meeting_notes`;
 CREATE TABLE `meeting_notes` (
     id MEDIUMINT NOT NULL AUTO_INCREMENT,
     `report_id` varchar(255) NOT NULL,
@@ -44,6 +48,7 @@ CREATE TABLE `meeting_notes` (
     KEY `report_name` (`report_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+DROP TABLE IF EXISTS `user_profile`;
 CREATE TABLE `user_profile` (
     `ldap_username` varchar(255) NOT NULL,
     `full_name` varchar(255) NOT NULL,

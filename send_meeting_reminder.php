@@ -15,6 +15,3 @@ $fqdn = $argv[1];
 include_once('phplib/base.php');
 
 sendMeetingReminder($fqdn);
-
-
-?>
